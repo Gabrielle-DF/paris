@@ -7,9 +7,10 @@ use Data::Dumper;
 use Time::HiRes;
 use Set::IntervalTree;
 use Getopt::Std;
+use File::Basename;
 
 #
-use lib "module";
+use lib dirname(__FILE__) . "/module";
 use PARISutil qw( &readGTF_ensembl_new &getBioType &get5primeLen &get3primeLen );
 
 ##--------------------------------------------------

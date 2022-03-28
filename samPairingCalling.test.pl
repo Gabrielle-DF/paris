@@ -5,8 +5,9 @@ use warnings;
 
 use Data::Dumper;
 use Getopt::Std;
+use File::Basename;
 
-use lib "module";
+use lib dirname(__FILE__) . "/module";
 #use PARISutil qw( &loadGTF &loadGenome &parseCigar &reverseComplement &localAlignment );
 use PARISutil qw( &loadGenome &parseCigar &reverseComplement &localAlignment );
 #
@@ -1502,19 +1503,27 @@ sub calcScore
     close POS;
     close NEG;
 
-    if ( $parameters{coverage} eq "pileup" ) {
-	print STDERR `bedtools genomecov -i $supportReadFile -g $genomeSizeFile -bg -strand + > "tmp.$$.pos.genomeCov"`; 
-	print STDERR `bedtools genomecov -i $supportReadFile -g $genomeSizeFile -bg -strand - > "tmp.$$.neg.genomeCov"`; 
+    print STDERR `sort -k1,1 -k2,2n -k3,3n $posBed > "tmp.$$.cluster.pos.sorted.bed"`;
+    print STDERR `sort -k1,1 -k2,2n -k3,3n $negBed > "tmp.$$.cluster.neg.sorted.bed"`;
+    my $posBedsorted = "tmp.$$.cluster.pos.sorted.bed";
+    my $negBedsorted = "tmp.$$.cluster.neg.sorted.bed";
+    print STDERR `sed -i '/^\t/d' $supportReadFile`;
+    print STDERR `sort -k1,1 -k2,2n -k3,3n $supportReadFile > "$supportReadFile.sorted"`;
+    my $supportReadFilesorted = "$supportReadFile.sorted";
 
-	print STDERR `bedtools intersect -wb -a "tmp.$$.pos.genomeCov" -b $posBed > "tmp.$$.pos.intCov"`; 
+    if ( $parameters{coverage} eq "pileup" ) {
+	print STDERR `bedtools genomecov -i $supportReadFilesorted -g $genomeSizeFile -bg -strand + > "tmp.$$.pos.genomeCov"`;
+	print STDERR `bedtools genomecov -i $supportReadFilesorted -g $genomeSizeFile -bg -strand - > "tmp.$$.neg.genomeCov"`;
+
+	print STDERR `bedtools intersect -wb -a "tmp.$$.pos.genomeCov" -b $posBedsorted > "tmp.$$.pos.intCov"`;
 	addCoverage ( "tmp.$$.pos.intCov", $ref_clique, coverage => "pileup" );
-	print STDERR `bedtools intersect -wb -a "tmp.$$.neg.genomeCov" -b $negBed > "tmp.$$.neg.intCov"`; 
+	print STDERR `bedtools intersect -wb -a "tmp.$$.neg.genomeCov" -b $negBedsorted > "tmp.$$.neg.intCov"`;
 	addCoverage ( "tmp.$$.neg.intCov", $ref_clique, coverage => "pileup" );
     }
     elsif ( $parameters{coverage} eq "count" ) {
-	print STDERR `bedtools intersect -a $posBed -b $supportReadFile -c -s > "tmp.$$.pos.intCov"`; 
+	print STDERR `bedtools intersect -a $posBedsorted -b $supportReadFilesorted -c -s > "tmp.$$.pos.intCov"`;
 	addCoverage ( "tmp.$$.pos.intCov", $ref_clique, coverage => "count" );
-	print STDERR `bedtools intersect -a $negBed -b $supportReadFile -c -s > "tmp.$$.neg.intCov"`; 
+	print STDERR `bedtools intersect -a $negBedsorted -b $supportReadFilesorted -c -s > "tmp.$$.neg.intCov"`;
 	addCoverage ( "tmp.$$.neg.intCov", $ref_clique, coverage => "count" );
     }
 
